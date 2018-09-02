@@ -15,6 +15,7 @@ Probably best run with tmux or similar.
 Could be enhanced with syslog capabilities.
 
 ## TODO
+* Failsafe - revert to automatic fan control, when temperature reaches critical
 * integrate heathcheck.io
 * integrate slack
 * other notifications
