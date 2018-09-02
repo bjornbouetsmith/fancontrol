@@ -1,0 +1,141 @@
+# ipmi fan control script library for Dell PowerEdge R210 II &  Dell PowerEdgre R720
+# requires ipmitool
+# requires sendmail 
+#
+ver=1.0
+RED="\033[1;31m"
+GREEN="\033[1;32m"
+NOCOLOR="\033[0m"
+
+#defaults for imput that probably wont work, but wont break script
+ip=127.0.0.1
+user=root
+password=calvin
+maxtemp=80
+sendto=root@localhost
+
+
+# script default values
+# minimum speed the fans should run
+minfanspeed=10 #=16%
+# max speed the fans should run
+maxfanspeed=48 #=75%
+
+# increment fanspeed with this when temperature is too high this is not percent
+increment=3
+
+# decrement fanspeed with this when temperature has gone back down below max
+decrement=1
+
+
+
+write_msg()
+{
+ echo "${1}$2${NOCOLOR}" 
+}
+
+
+# call with $@ return 1 if parsed ok, 0 otherwise
+parse_cmdline()
+{
+ if [ "$#" -lt "3" ]
+ then
+  return 0
+ fi
+
+ ip=$1
+ user=$2
+ password=$3
+
+ input=`echo $4 | grep "[^0-9]" > /dev/null 2>&1`
+ if [ "$?" -ne "0" ]
+ then
+  maxtemp=$4
+ fi
+
+ if [ "$#" -eq "5" ]
+ then
+  currentspeed=$5
+ fi
+
+ if [ "$#" -eq "6" ]
+ then
+  sendto=$6
+ fi
+
+
+ return 1
+}
+
+
+set_speed()
+{
+ percent=$(($1*100/64))
+ echo "setting speed to ~$percent%"
+ ipmitool -I lanplus -H $ip -U $user -P $password raw 0x30 0x30 0x02 0xff 0x$1
+ 
+}
+
+
+send_alert_mail()
+{
+ echo "sending alert mail"
+  msg="From: sensors@{`uname -n`}\nTo: $sendto\nSubject: Temperature Sensor alert\n
+\n
+Temperature for server $ip has reached $maxtemp\n
+\n
+Fan speed has been increased to $currentspeed"
+echo "$msg" | sendmail -t $sendto
+echo "mail sent"
+}
+
+send_ok_mail()
+{
+ echo "sending OK mail"
+ msg="From: sensors@bitsyncer.local\nTo: $sendto\nSubject: Temperature Sensor OK\n
+\n
+Temperature for server $ip has gone below $maxtemp\n
+\n
+Fan speed has been decreased to $currentspeed\n"
+
+echo "$msg" | sendmail -t $sendto
+echo "mail sent"
+}
+
+usage()
+{
+ echo "usage:"
+ echo "$0 <ipaddress> <user> <password> <maxtemp> <initial speed>"
+ echo ""
+ echo "example"
+ echo "$0 192.169.0.40 root calvin 65 bjornsmith@gmail.com"
+}
+
+monitor()
+{
+
+incremented=0
+
+while [ : ]
+do
+ maxcurrent=`ipmitool -I lanplus -H $ip -U $user -P $password sensor|grep Temp|cut -d'|' -f2|cut -d'.' -f1| cut -d' ' -f2|sort -k1|tail -1`
+ if [ "$maxcurrent" -gt "$maxtemp" ]
+ then
+  echo "Temperature $maxcurrent is higher than allowed max $maxtemp, increasing fan speed"
+  currentspeed=$(($currentspeed+$increment))
+  set_speed $currentspeed
+  send_alert_mail
+  incremented=1
+ else
+  if [ "$incremented" -eq "1" ]
+  then
+   echo "Temperature $maxcurrent is is below max $maxtemp decreasing fanspeed"
+   currentspeed=$(($currentspeed-$decrement))
+   set_speed $currentspeed
+   send_ok_mail
+   incremented=0
+  fi
+ fi
+ sleep 15
+done
+}
