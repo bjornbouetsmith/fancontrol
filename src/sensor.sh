@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # ipmi fan control script for Dell PowerEdge R210 II &  Dell PowerEdgre R720
-# call with arguments  <ip_address> <user> <password> <maxtemp> <initial speed>
+# call with arguments  <ip_address> <user> <password> <maxtemp> <email_address>
 # requires ipmitool
 # requires sendmail 
 #
