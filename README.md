@@ -6,3 +6,7 @@ Dependencies:
 ipmitool
 
 sendmail
+
+Probably best run with tmux or similar.
+
+Could be enhanced with syslog capabilities.
