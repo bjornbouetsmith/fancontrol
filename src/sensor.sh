@@ -8,9 +8,9 @@
 # call with absolute value for initial speed, i.e. 10 = ~16%
 . ./fancontrol.lib
 
-parse_cmdline
+parse_cmdline $@
 
-if [ "$?" -eq "0" ] || [ "$1" = "-h" ] || [ "$1" = "--h" ]
+if [ "$?" -eq "0" ] 
 then
   usage
   return 1

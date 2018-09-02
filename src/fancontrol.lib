@@ -13,7 +13,7 @@ user=root
 password=calvin
 maxtemp=80
 sendto=root@localhost
-
+currentspeed=10
 
 # script default values
 # minimum speed the fans should run
@@ -40,6 +40,7 @@ parse_cmdline()
 {
  if [ "$#" -lt "3" ]
  then
+  write_msg "$RED" "Not enough arguments"
   return 0
  fi
 
@@ -47,18 +48,21 @@ parse_cmdline()
  user=$2
  password=$3
 
- input=`echo $4 | grep "[^0-9]" > /dev/null 2>&1`
- if [ "$?" -ne "0" ]
+ if [ "$#" -gt "3" ]
  then
-  maxtemp=$4
+  input=`echo $4 | grep "[^0-9]" > /dev/null 2>&1`
+  if [ "$?" -ne "0" ]
+  then
+   maxtemp=$4
+  fi
  fi
 
- if [ "$#" -eq "5" ]
+ if [ "$#" -gt "4" ]
  then
   currentspeed=$5
  fi
 
- if [ "$#" -eq "6" ]
+ if [ "$#" -gt "5" ]
  then
   sendto=$6
  fi
@@ -105,14 +109,17 @@ echo "mail sent"
 usage()
 {
  echo "usage:"
- echo "$0 <ipaddress> <user> <password> <maxtemp> <initial speed>"
+ echo "$0 <ipaddress> <user> <password> <maxtemp> <initial speed> <email>"
  echo ""
  echo "example"
- echo "$0 192.169.0.40 root calvin 65 bjornsmith@gmail.com"
+ echo "$0 192.169.0.40 root calvin 65 10 bjornsmith@gmail.com"
 }
 
 monitor()
 {
+write_msg "$GREEN" "Starting monitoring"
+
+set_speed $currentspeed
 
 incremented=0
 
